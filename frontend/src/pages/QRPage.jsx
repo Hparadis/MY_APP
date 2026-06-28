@@ -5,7 +5,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage.js'
 import './QRPage.css'
 
 // ← Replace with your actual deployed landing page URL
-const LANDING_URL = 'https://hirwa.vercel.app'
+const LANDING_URL = 'https://my-app-mocha-phi.vercel.app/'
 
 const SOCIAL_FIELDS = [
   { key: 'instagram', label: 'Instagram',  Icon: Instagram, placeholder: '@yourhandle' },
