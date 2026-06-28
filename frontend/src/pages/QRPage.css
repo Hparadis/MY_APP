@@ -1,0 +1,152 @@
+/* Tab switcher */
+.qr-tabs {
+  display: flex;
+  margin: 0 24px 28px;
+  background: var(--gray-50);
+  border-radius: var(--radius-full);
+  padding: 3px;
+}
+
+.qr-tab {
+  flex: 1;
+  padding: 9px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-400);
+  transition: background var(--transition), color var(--transition);
+}
+
+.qr-tab.active {
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+/* QR center */
+.qr-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 24px 40px;
+  animation: fadeIn 220ms ease both;
+}
+
+.qr-card {
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+}
+
+.qr-hint {
+  font-size: 14px;
+  color: var(--gray-400);
+  margin-bottom: 6px;
+}
+
+.qr-url {
+  font-size: 12px;
+  color: var(--gray-300);
+  font-family: monospace;
+}
+
+/* Form */
+.form-container {
+  padding: 0 24px 40px;
+  animation: slideUp 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.form-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+
+.form-subtitle {
+  font-size: 13px;
+  color: var(--gray-400);
+  margin-bottom: 24px;
+}
+
+.form-group {
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.input-row:last-child {
+  border-bottom: none;
+}
+
+.form-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--black);
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: var(--gray-300);
+}
+
+.socials-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-400);
+  margin-bottom: 10px;
+}
+
+.socials-label span {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--gray-300);
+}
+
+/* Save button */
+.save-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--black);
+  color: var(--white);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  transition: background var(--transition), transform var(--transition);
+}
+
+.save-btn:active {
+  transform: scale(0.98);
+}
+
+.save-btn.saved {
+  background: var(--gray-800);
+}
+
+.save-btn.disabled {
+  background: var(--gray-200);
+  color: var(--gray-400);
+  cursor: not-allowed;
+}
