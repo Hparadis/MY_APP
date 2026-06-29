@@ -200,3 +200,45 @@
   color: var(--gray-400);
   cursor: not-allowed;
 }
+
+/* ── Done state ── */
+.idea-card.done {
+  opacity: 0.55;
+}
+.idea-card.done .idea-text {
+  text-decoration: line-through;
+  color: var(--gray-400);
+}
+
+/* ── Main row ── */
+.idea-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.idea-main .idea-text {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* ── Done button ── */
+.done-btn {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--gray-300);
+  transition: color var(--transition);
+  display: flex;
+  align-items: center;
+}
+.done-btn.checked { color: var(--black); }
+.done-btn:active  { transform: scale(0.9); }
+
+/* ── Compose hint ── */
+.compose-hint {
+  font-size: 11px;
+  color: var(--gray-300);
+  margin-bottom: 12px;
+  text-align: center;
+}
