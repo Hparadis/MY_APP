@@ -8,3 +8,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 )
+
+// Register service worker (enables local scheduled reminders)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw-reminders.js').catch(() => {})
+  })
+}

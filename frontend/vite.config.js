@@ -8,6 +8,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw-reminders.js',
+      injectManifest: {
+        injectionPoint: undefined
+      },
       manifest: {
         name: 'Hirwa Paradis',
         short_name: 'Hirwa',

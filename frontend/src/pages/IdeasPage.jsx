@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Plus, Pin, Trash2, X, CheckCircle, Circle } from 'lucide-react'
+import { Plus, Pin, Trash2, X, CheckCircle, Circle, Bell, BellOff, Clock } from 'lucide-react'
 import { useLocalStorage } from '../hooks/useLocalStorage.js'
+import { useNotifications, getTimeOptions } from '../hooks/useNotifications.js'
 import './IdeasPage.css'
 
 function timeAgo(iso) {
@@ -14,10 +15,103 @@ function timeAgo(iso) {
   return `${days}d ago`
 }
 
-function IdeaCard({ idea, onPin, onDelete, onToggleDone }) {
+function formatReminderTime(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1)
+  const isTomorrow = d.toDateString() === tomorrow.toDateString()
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  if (isToday) return `Today, ${time}`
+  if (isTomorrow) return `Tomorrow, ${time}`
+  return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`
+}
+
+// ── Permission banner ──
+function PermissionBanner({ onEnable, onDismiss }) {
+  return (
+    <div className="permission-banner">
+      <Bell size={18} strokeWidth={1.5} />
+      <div className="permission-banner-body">
+        <p className="permission-banner-title">Turn on notifications</p>
+        <p className="permission-banner-sub">Get reminded on your phone, even with the app closed</p>
+      </div>
+      <button className="permission-enable-btn" onClick={onEnable}>Enable</button>
+      <button className="permission-dismiss-btn" onClick={onDismiss} aria-label="Dismiss">
+        <X size={14} strokeWidth={1.5} />
+      </button>
+    </div>
+  )
+}
+
+// ── Time picker sheet ──
+function TimePicker({ idea, onSchedule, onClose }) {
+  const options = getTimeOptions()
+  const [customDate, setCustomDate] = useState('')
+  const [customTime, setCustomTime] = useState('')
+
+  function handleCustom() {
+    if (!customDate || !customTime) return
+    const fireAt = new Date(`${customDate}T${customTime}`)
+    if (fireAt.getTime() <= Date.now()) return
+    onSchedule(fireAt)
+  }
+
+  return (
+    <div className="detail-overlay" onClick={onClose}>
+      <div className="detail-sheet" onClick={e => e.stopPropagation()}>
+        <div className="detail-drag-bar" />
+        <p className="picker-title">Remind me</p>
+        <p className="picker-idea-text">{idea.text}</p>
+
+        <div className="picker-options">
+          {options.map(opt => (
+            <button key={opt.label} className="picker-option" onClick={() => onSchedule(opt.value)}>
+              <Clock size={16} strokeWidth={1.5} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <p className="picker-custom-label">Custom time</p>
+        <div className="picker-custom-row">
+          <input
+            type="date"
+            className="picker-input"
+            value={customDate}
+            min={new Date().toISOString().split('T')[0]}
+            onChange={e => setCustomDate(e.target.value)}
+          />
+          <input
+            type="time"
+            className="picker-input"
+            value={customTime}
+            onChange={e => setCustomTime(e.target.value)}
+          />
+        </div>
+        <button
+          className={`save-btn ${(!customDate || !customTime) ? 'disabled' : ''}`}
+          onClick={handleCustom}
+          disabled={!customDate || !customTime}
+        >
+          Set reminder
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function IdeaCard({ idea, onPin, onDelete, onToggleDone, onSetTime }) {
+  const reminderLabel = formatReminderTime(idea.remindAt)
+
   return (
     <div className={`idea-card ${idea.pinned ? 'pinned' : ''} ${idea.done ? 'done' : ''}`}>
-      {idea.pinned && !idea.done && <div className="pin-badge">Reminder</div>}
+      {idea.pinned && !idea.done && (
+        <div className="pin-badge">
+          {reminderLabel ? reminderLabel : 'Reminder'}
+        </div>
+      )}
       <div className="idea-main">
         <button
           className={`done-btn ${idea.done ? 'checked' : ''}`}
@@ -34,6 +128,14 @@ function IdeaCard({ idea, onPin, onDelete, onToggleDone }) {
       <div className="idea-footer">
         <span className="idea-time">{timeAgo(idea.createdAt)}</span>
         <div className="idea-actions">
+          <button
+            className={`idea-btn ${idea.remindAt ? 'active' : ''}`}
+            onClick={() => onSetTime(idea)}
+            aria-label="Set reminder time"
+            title="Set reminder time"
+          >
+            <Bell size={14} strokeWidth={idea.remindAt ? 2.5 : 1.5} />
+          </button>
           <button
             className={`idea-btn ${idea.pinned ? 'active' : ''}`}
             onClick={() => onPin(idea.id)}
@@ -59,7 +161,11 @@ export default function IdeasPage({ className }) {
   const [ideas, setIdeas] = useLocalStorage('ideas', DEMO_IDEAS)
   const [draft, setDraft] = useState('')
   const [open, setOpen]   = useState(false)
-  const textareaRef       = useRef(null)
+  const [timePickerFor, setTimePickerFor] = useState(null)
+  const [bannerDismissed, setBannerDismissed] = useLocalStorage('notif-banner-dismissed', false)
+  const textareaRef = useRef(null)
+
+  const { permission, supported, requestPermission, scheduleReminder, cancelReminder } = useNotifications()
 
   const reminders = ideas.filter(i => i.pinned && !i.done)
   const rest       = ideas.filter(i => !i.pinned || i.done)
@@ -75,6 +181,7 @@ export default function IdeasPage({ className }) {
       text: draft.trim(),
       pinned: false,
       done: false,
+      remindAt: null,
       createdAt: new Date().toISOString()
     }, ...prev])
     setDraft('')
@@ -86,11 +193,43 @@ export default function IdeasPage({ className }) {
   }
 
   function toggleDone(id) {
-    setIdeas(prev => prev.map(i => i.id === id ? { ...i, done: !i.done, pinned: i.done ? i.pinned : false } : i))
+    setIdeas(prev => prev.map(i => {
+      if (i.id !== id) return i
+      const nowDone = !i.done
+      if (nowDone && i.remindAt) cancelReminder(id)
+      return { ...i, done: nowDone, pinned: nowDone ? i.pinned : i.pinned }
+    }))
   }
 
   function deleteIdea(id) {
+    cancelReminder(id)
     setIdeas(prev => prev.filter(i => i.id !== id))
+  }
+
+  async function handleScheduleTime(date) {
+    const idea = timePickerFor
+    if (!idea) return
+
+    if (permission !== 'granted') {
+      const result = await requestPermission()
+      if (result !== 'granted') {
+        setTimePickerFor(null)
+        return
+      }
+    }
+
+    const fireAt = date.getTime()
+    await scheduleReminder(idea.id, idea.text, fireAt)
+
+    setIdeas(prev => prev.map(i =>
+      i.id === idea.id ? { ...i, remindAt: date.toISOString(), pinned: true } : i
+    ))
+    setTimePickerFor(null)
+  }
+
+  async function handleEnableNotifications() {
+    await requestPermission()
+    setBannerDismissed(true)
   }
 
   function handleKey(e) {
@@ -99,6 +238,7 @@ export default function IdeasPage({ className }) {
   }
 
   const doneCount = ideas.filter(i => i.done).length
+  const showPermissionBanner = supported && permission === 'default' && !bannerDismissed
 
   return (
     <div className={className}>
@@ -115,12 +255,19 @@ export default function IdeasPage({ className }) {
         </button>
       </div>
 
+      {showPermissionBanner && (
+        <PermissionBanner
+          onEnable={handleEnableNotifications}
+          onDismiss={() => setBannerDismissed(true)}
+        />
+      )}
+
       <div className="ideas-list">
         {reminders.length > 0 && (
           <>
             <p className="ideas-section-label">Reminders</p>
             {reminders.map(i => (
-              <IdeaCard key={i.id} idea={i} onPin={togglePin} onDelete={deleteIdea} onToggleDone={toggleDone} />
+              <IdeaCard key={i.id} idea={i} onPin={togglePin} onDelete={deleteIdea} onToggleDone={toggleDone} onSetTime={setTimePickerFor} />
             ))}
           </>
         )}
@@ -131,7 +278,7 @@ export default function IdeasPage({ className }) {
               <p className="ideas-section-label" style={{ marginTop: 24 }}>All ideas</p>
             )}
             {rest.map(i => (
-              <IdeaCard key={i.id} idea={i} onPin={togglePin} onDelete={deleteIdea} onToggleDone={toggleDone} />
+              <IdeaCard key={i.id} idea={i} onPin={togglePin} onDelete={deleteIdea} onToggleDone={toggleDone} onSetTime={setTimePickerFor} />
             ))}
           </>
         )}
@@ -139,7 +286,7 @@ export default function IdeasPage({ className }) {
         {ideas.length === 0 && (
           <div className="empty-state">
             <p>No ideas yet.</p>
-            <p className="empty-hint">Tap + to capture something before it disappears.<br/>Pin an idea to make it a reminder.</p>
+            <p className="empty-hint">Tap + to capture something before it disappears.<br/>Tap the bell to set a reminder time.</p>
           </div>
         )}
       </div>
@@ -162,7 +309,7 @@ export default function IdeasPage({ className }) {
               onKeyDown={handleKey}
               rows={4}
             />
-            <p className="compose-hint">Cmd+Enter to save · Pin it after to make it a reminder</p>
+            <p className="compose-hint">Cmd+Enter to save · Tap the bell after to schedule a reminder</p>
             <button
               className={`save-btn ${!draft.trim() ? 'disabled' : ''}`}
               onClick={addIdea}
@@ -173,12 +320,20 @@ export default function IdeasPage({ className }) {
           </div>
         </div>
       )}
+
+      {timePickerFor && (
+        <TimePicker
+          idea={timePickerFor}
+          onSchedule={handleScheduleTime}
+          onClose={() => setTimePickerFor(null)}
+        />
+      )}
     </div>
   )
 }
 
 const DEMO_IDEAS = [
-  { id: '1', text: 'Build a CLI tool that summarises your week from notes', pinned: true,  done: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: '2', text: 'Write a Medium piece on learning chess as an adult',    pinned: false, done: false, createdAt: new Date(Date.now() - 86400000).toISOString() },
-  { id: '3', text: 'Dare to Dream onboarding flow — keep it one screen',    pinned: false, done: false, createdAt: new Date(Date.now() - 172800000).toISOString() },
+  { id: '1', text: 'Build a CLI tool that summarises your week from notes', pinned: true,  done: false, remindAt: null, createdAt: new Date(Date.now() - 3600000).toISOString() },
+  { id: '2', text: 'Write a Medium piece on learning chess as an adult',    pinned: false, done: false, remindAt: null, createdAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: '3', text: 'Dare to Dream onboarding flow — keep it one screen',    pinned: false, done: false, remindAt: null, createdAt: new Date(Date.now() - 172800000).toISOString() },
 ]

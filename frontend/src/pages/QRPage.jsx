@@ -5,7 +5,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage.js'
 import './QRPage.css'
 
 // ← Replace with your actual deployed landing page URL
-const LANDING_URL = 'https://my-app-w61v.vercel.app/'
+const LANDING_URL = 'https://hirwa.vercel.app'
 
 const SOCIAL_FIELDS = [
   { key: 'instagram', label: 'Instagram',  Icon: Instagram, placeholder: '@yourhandle' },
@@ -135,7 +135,7 @@ export default function QRPage({ className }) {
               level="M"
             />
           </div>
-          {/* <p className="qr-hint">They scan → your landing page opens</p> */}
+          <p className="qr-hint">They scan → your landing page opens</p>
           <p className="qr-url">{LANDING_URL}</p>
         </div>
       ) : (
